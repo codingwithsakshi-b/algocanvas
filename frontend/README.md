@@ -1,9 +1,16 @@
 # AlgoCanvas
 
 AlgoCanvas is an interactive data structures and algorithms visualizer built
-with React, TypeScript, and Vite. Bubble Sort, Selection Sort, Insertion Sort,
-Merge Sort, and Quick Sort are available sorting visualizations; other sorting
-algorithms remain disabled until they have event generators.
+with React, TypeScript, and Vite. Its Data Structures workspace includes Arrays,
+Singly Linked Lists, Stacks & Queues, and an interactive Trees visualizer. The
+queue uses a bounded circular buffer and shows its physical slots and wraparound.
+The Trees module includes a duplicate-rejecting binary search tree, node
+properties, and preorder, inorder, postorder, and level-order traversal playback.
+Graph Explorer provides an interactive graph editor with BFS, DFS, and Dijkstra
+algorithm playback.
+Bubble Sort, Selection Sort, Insertion Sort, Merge Sort, and Quick Sort are
+available sorting visualizations; other sorting algorithms remain disabled until
+they have event generators.
 
 Quick Sort uses iterative Lomuto partitioning with the last element as pivot.
 It defers the larger partition while processing the smaller one first to keep

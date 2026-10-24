@@ -9,6 +9,9 @@ import type { SortingAlgorithm } from "./algorithms/types";
 import { replaySortingEvents } from "./visualization/replaySortingEvents";
 import ArraysVisualizer from "./components/ArraysVisualizer";
 import LinkedListVisualizer from "./components/LinkedListVisualizer";
+import StacksQueuesVisualizer from "./components/StacksQueuesVisualizer";
+import TreesVisualizer from "./components/TreesVisualizer";
+import GraphExplorer from "./components/GraphExplorer";
 import "./App.css";
 
 const initialValues = [42, 72, 34, 88, 56, 24, 65, 48, 92, 38, 61, 29];
@@ -19,12 +22,12 @@ function generateArray(): number[] {
 }
 
 function App() {
-  const [activeSection, setActiveSection] = useState<"sorting" | "structures">(
-    "sorting",
-  );
-  const [activeStructure, setActiveStructure] = useState<"arrays" | "linked-lists">(
-    "arrays",
-  );
+  const [activeSection, setActiveSection] = useState<
+    "sorting" | "structures" | "graphs"
+  >("sorting");
+  const [activeStructure, setActiveStructure] = useState<
+    "arrays" | "linked-lists" | "stacks-queues" | "trees"
+  >("arrays");
   const [values, setValues] = useState(initialValues);
   const [activeAlgorithm, setActiveAlgorithm] =
     useState<SortingAlgorithm>("Bubble Sort");
@@ -144,7 +147,15 @@ function App() {
           >
             <span>▤</span> Data Structures
           </a>
-          <a className="nav-item" href="#graphs">
+          <a
+            className={`nav-item${activeSection === "graphs" ? " active" : ""}`}
+            href="#graphs"
+            aria-current={activeSection === "graphs" ? "page" : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              setActiveSection("graphs");
+            }}
+          >
             <span>⌘</span> Graph Explorer
           </a>
           <a className="nav-item" href="#learn">
@@ -161,19 +172,29 @@ function App() {
 
       <main
         className="main-content"
-        id={activeSection === "sorting" ? "sorting" : "structures"}
+        id={activeSection === "sorting" ? "sorting" : activeSection}
       >
         <header className="topbar">
           <div>
             <div className="breadcrumb">
-              Workspace / {activeSection === "sorting" ? "Sorting Lab" : "Data Structures"}
+              Workspace / {activeSection === "sorting"
+                ? "Sorting Lab"
+                : activeSection === "structures"
+                  ? "Data Structures"
+                  : "Graph Explorer"}
             </div>
             <h1>
-              {activeSection === "sorting"
-                ? "Algorithm playground"
-                : activeStructure === "arrays"
+              {activeSection === "graphs"
+                ? "Graph Algorithms Lab"
+                : activeSection === "sorting"
+                  ? "Algorithm playground"
+                  : activeStructure === "arrays"
                   ? "Arrays"
-                  : "Singly Linked Lists"}
+                  : activeStructure === "linked-lists"
+                    ? "Singly Linked Lists"
+                    : activeStructure === "stacks-queues"
+                      ? "Stacks & Queues"
+                      : "Trees"}
             </h1>
           </div>
           <div className="header-right">
@@ -185,7 +206,9 @@ function App() {
           </div>
         </header>
 
-        {activeSection === "structures" ? (
+        {activeSection === "graphs" ? (
+          <GraphExplorer />
+        ) : activeSection === "structures" ? (
           <>
             <nav className="structure-tabs" aria-label="Data structure modules">
               <button
@@ -204,11 +227,31 @@ function App() {
               >
                 Linked Lists
               </button>
+              <button
+                className={`structure-tab${activeStructure === "stacks-queues" ? " active" : ""}`}
+                type="button"
+                aria-pressed={activeStructure === "stacks-queues"}
+                onClick={() => setActiveStructure("stacks-queues")}
+              >
+                Stacks &amp; Queues
+              </button>
+              <button
+                className={`structure-tab${activeStructure === "trees" ? " active" : ""}`}
+                type="button"
+                aria-pressed={activeStructure === "trees"}
+                onClick={() => setActiveStructure("trees")}
+              >
+                Trees
+              </button>
             </nav>
             {activeStructure === "arrays" ? (
               <ArraysVisualizer />
-            ) : (
+            ) : activeStructure === "linked-lists" ? (
               <LinkedListVisualizer />
+            ) : activeStructure === "stacks-queues" ? (
+              <StacksQueuesVisualizer />
+            ) : (
+              <TreesVisualizer />
             )}
           </>
         ) : (
