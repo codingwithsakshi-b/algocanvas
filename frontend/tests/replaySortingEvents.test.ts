@@ -1,28 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bubbleSort } from "../src/algorithms/bubbleSort.ts";
-import { insertionSort } from "../src/algorithms/insertionSort.ts";
-import { mergeSort } from "../src/algorithms/mergeSort.ts";
-import { quickSort } from "../src/algorithms/quickSort.ts";
-import { selectionSort } from "../src/algorithms/selectionSort.ts";
-import type { SortingAlgorithm, SortingResult } from "../src/algorithms/types.ts";
+import { typeScriptSortingEngine } from "../src/algorithms/typescriptSortingEngine.ts";
+import type { SortingAlgorithm } from "../src/algorithms/types.ts";
 import { replaySortingEvents } from "../src/visualization/replaySortingEvents.ts";
 
-const algorithms: Array<{
-  name: SortingAlgorithm;
-  sort: (values: readonly number[]) => SortingResult;
-}> = [
-  { name: "Bubble Sort", sort: bubbleSort },
-  { name: "Selection Sort", sort: selectionSort },
-  { name: "Insertion Sort", sort: insertionSort },
-  { name: "Merge Sort", sort: mergeSort },
-  { name: "Quick Sort", sort: quickSort },
+const algorithms: SortingAlgorithm[] = [
+  "Bubble Sort",
+  "Selection Sort",
+  "Insertion Sort",
+  "Merge Sort",
+  "Quick Sort",
 ];
 
-for (const { name, sort } of algorithms) {
+for (const name of algorithms) {
   test(`${name} replay restores exact state for every event prefix`, () => {
     const initial = [5, 2, 4, 1, 3];
-    const result = sort(initial);
+    const result = typeScriptSortingEngine.sort(name, initial);
     const snapshots = result.events.map((_, index) =>
       replaySortingEvents(initial, result.events, index + 1, name),
     );
@@ -54,7 +47,7 @@ for (const { name, sort } of algorithms) {
 
 test("Quick Sort back-step restores the active pivot and partition range", () => {
   const values = [3, 1, 2];
-  const { events } = quickSort(values);
+  const { events } = typeScriptSortingEngine.sort("Quick Sort", values);
   const pivotStep = events.findIndex((event) => event.type === "pivot") + 1;
   const swapStep = events.findIndex((event) => event.type === "swap") + 1;
   const beforeSwap = replaySortingEvents(
@@ -76,7 +69,7 @@ test("Quick Sort back-step restores the active pivot and partition range", () =>
 
 test("clamps replay step boundaries", () => {
   const values = [2, 1];
-  const { events } = quickSort(values);
+  const { events } = typeScriptSortingEngine.sort("Quick Sort", values);
 
   assert.deepEqual(
     replaySortingEvents(values, events, -1, "Quick Sort"),

@@ -1,10 +1,6 @@
 
 import { useEffect, useMemo, useState } from "react";
-import { bubbleSort } from "./algorithms/bubbleSort";
-import { insertionSort } from "./algorithms/insertionSort";
-import { mergeSort } from "./algorithms/mergeSort";
-import { quickSort } from "./algorithms/quickSort";
-import { selectionSort } from "./algorithms/selectionSort";
+import { typeScriptSortingEngine } from "./algorithms/typescriptSortingEngine";
 import type { SortingAlgorithm } from "./algorithms/types";
 import { replaySortingEvents } from "./visualization/replaySortingEvents";
 import ArraysVisualizer from "./components/ArraysVisualizer";
@@ -34,16 +30,7 @@ function App() {
   const [step, setStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const sorting = useMemo(
-    () =>
-      activeAlgorithm === "Bubble Sort"
-        ? bubbleSort(values)
-        : activeAlgorithm === "Selection Sort"
-          ? selectionSort(values)
-          : activeAlgorithm === "Insertion Sort"
-            ? insertionSort(values)
-            : activeAlgorithm === "Merge Sort"
-              ? mergeSort(values)
-              : quickSort(values),
+    () => typeScriptSortingEngine.sort(activeAlgorithm, values),
     [activeAlgorithm, values],
   );
   const replay = replaySortingEvents(

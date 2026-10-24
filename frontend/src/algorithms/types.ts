@@ -36,3 +36,10 @@ export type SortingAlgorithm =
   | "Insertion Sort"
   | "Merge Sort"
   | "Quick Sort";
+
+export interface SortingEngine {
+  sort(
+    algorithm: SortingAlgorithm,
+    values: readonly number[],
+  ): SortingResult;
+}
