@@ -11,6 +11,7 @@ import TreesVisualizer from "./components/TreesVisualizer";
 import GraphExplorer from "./components/GraphExplorer";
 import GoogleSignInButton from "./components/GoogleSignInButton";
 import LearningGoalPanel from "./components/LearningGoalPanel";
+import CodePlayground from "./components/CodePlayground";
 import {
   getLearningProgress,
   getCurrentUser,
@@ -26,17 +27,25 @@ import {
   learningTopics,
   type LearningTopic,
 } from "./learning/topics";
+import {
+  hashForRoute,
+  resolveAppRoute,
+  resolveStartupRoute,
+  type AppPage,
+  type AppRoute,
+  type WorkspaceSection,
+} from "./navigation";
 import "./App.css";
 
 const initialValues = [42, 72, 34, 88, 56, 24, 65, 48, 92, 38, 61, 29];
-type WorkspaceSection = "sorting" | "structures" | "graphs";
-type Page = "landing" | "workspace" | "learn";
+type Page = AppPage;
 
 interface NavigationSidebarProps {
   activeSection: WorkspaceSection;
   page: Page;
   onHome: () => void;
   onLearn: () => void;
+  onPlayground: () => void;
   onOpenWorkspace: (section: WorkspaceSection) => void;
 }
 
@@ -45,6 +54,7 @@ function NavigationSidebar({
   page,
   onHome,
   onLearn,
+  onPlayground,
   onOpenWorkspace,
 }: NavigationSidebarProps) {
   const navItems: {
@@ -94,6 +104,17 @@ function NavigationSidebar({
         >
           <span>◉</span> Learn
         </a>
+        <a
+          className={`nav-item${page === "playground" ? " active" : ""}`}
+          href="#playground"
+          aria-current={page === "playground" ? "page" : undefined}
+          onClick={(event) => {
+            event.preventDefault();
+            onPlayground();
+          }}
+        >
+          <span>{"</>"}</span> Code Playground
+        </a>
       </nav>
       <div className="sidebar-bottom">
         <div className="status-dot" />
@@ -127,7 +148,9 @@ function getTimeGreeting(date = new Date()): string {
 }
 
 function App() {
-  const [page, setPage] = useState<Page>("landing");
+  const [page, setPage] = useState<Page>(() =>
+    resolveAppRoute(window.location.hash).page,
+  );
   const [authStatus, setAuthStatus] = useState<
     "loading" | "signed-out" | "signed-in"
   >("loading");
@@ -142,26 +165,77 @@ function App() {
   >("idle");
   const [progressError, setProgressError] = useState<string>();
   const [progressNotice, setProgressNotice] = useState<string>();
-  const [activeGraphTopicId, setActiveGraphTopicId] = useState("graphs-bfs");
-  const [activeSection, setActiveSection] = useState<
-    WorkspaceSection
-  >("sorting");
+  const [activeGraphTopicId, setActiveGraphTopicId] = useState(() => {
+    const route = resolveAppRoute(window.location.hash);
+    const topic = learningTopics.find(
+      (candidate) => candidate.topicId === route.topicId,
+    );
+    return topic?.category === "graphs" ? topic.topicId : "graphs-bfs";
+  });
+  const [activeSection, setActiveSection] = useState<WorkspaceSection>(() => {
+    const route = resolveAppRoute(window.location.hash);
+    return (
+      learningTopics.find((topic) => topic.topicId === route.topicId)?.section ??
+      "sorting"
+    );
+  });
   const [activeStructure, setActiveStructure] = useState<
     "arrays" | "linked-lists" | "stacks-queues" | "trees"
-  >("arrays");
+  >(() => {
+    const route = resolveAppRoute(window.location.hash);
+    const topic = learningTopics.find(
+      (candidate) => candidate.topicId === route.topicId,
+    );
+    return topic?.structure ?? "arrays";
+  });
   const [values, setValues] = useState(initialValues);
   const [activeAlgorithm, setActiveAlgorithm] =
-    useState<SortingAlgorithm>("Bubble Sort");
+    useState<SortingAlgorithm>(() => {
+      const route = resolveAppRoute(window.location.hash);
+      const topic = learningTopics.find(
+        (candidate) => candidate.topicId === route.topicId,
+      );
+      return (topic?.algorithm as SortingAlgorithm | undefined) ?? "Bubble Sort";
+    });
   const [step, setStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackDelay, setPlaybackDelay] = useState(450);
 
-  function navigateToPage(nextPage: Page) {
-    if (nextPage !== "workspace" || page !== "workspace") {
-      setIsPlaying(false);
+  const applyRoute = useCallback((route: AppRoute) => {
+    setIsPlaying(false);
+    setPage(route.page);
+    const topic = learningTopics.find(
+      (candidate) => candidate.topicId === route.topicId,
+    );
+    if (!topic) {
+      if (route.page === "workspace") {
+        setActiveSection("sorting");
+        setActiveAlgorithm("Bubble Sort");
+        setActiveGraphTopicId("graphs-bfs");
+        setActiveStructure("arrays");
+      }
+      return;
     }
-    setPage(nextPage);
-  }
+    setActiveSection(topic.section);
+    if (topic.algorithm) setActiveAlgorithm(topic.algorithm as SortingAlgorithm);
+    if (topic.structure) setActiveStructure(topic.structure);
+    if (topic.category === "graphs") setActiveGraphTopicId(topic.topicId);
+  }, []);
+
+  const navigateToRoute = useCallback((route: AppRoute, replace = false) => {
+    applyRoute(route);
+    const hash = hashForRoute(route);
+    if (window.location.hash === hash) return;
+    if (replace) {
+      window.history.replaceState(null, "", hash);
+    } else {
+      window.location.hash = hash;
+    }
+  }, [applyRoute]);
+
+  const navigateToPage = useCallback((nextPage: Page) => {
+    navigateToRoute({ page: nextPage });
+  }, [navigateToRoute]);
 
   useEffect(() => {
     let isMounted = true;
@@ -170,6 +244,11 @@ function App() {
         if (!isMounted) return;
         setUser(currentUser);
         setAuthStatus(currentUser ? "signed-in" : "signed-out");
+        const route = resolveStartupRoute(
+          window.location.hash,
+          currentUser !== null,
+        );
+        navigateToRoute(route, currentUser !== null && !window.location.hash);
       })
       .catch((error: unknown) => {
         if (!isMounted) return;
@@ -184,7 +263,20 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [navigateToRoute]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const route = resolveAppRoute(window.location.hash);
+      if (!window.location.hash && authStatus === "signed-in") {
+        navigateToRoute({ page: "learn" }, true);
+        return;
+      }
+      applyRoute(route);
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [applyRoute, authStatus, navigateToRoute]);
 
   const loadLearningProgress = useCallback(async () => {
     setProgressState("loading");
@@ -291,9 +383,12 @@ function App() {
       const topic = learningTopics.find(
         (candidate) => candidate.topicId === topicId,
       );
-      if (topic) void saveTopicProgress(topic, "in-progress");
+      if (topic) {
+        navigateToRoute({ page: "workspace", topicId: topic.topicId });
+        void saveTopicProgress(topic, "in-progress");
+      }
     },
-    [saveTopicProgress],
+    [navigateToRoute, saveTopicProgress],
   );
 
   const handleGraphTopicComplete = useCallback(
@@ -311,8 +406,12 @@ function App() {
     setAuthError(undefined);
     try {
       const signedInUser = await signInWithGoogle(idToken);
+      setLearningProgress([]);
+      setProgressState("idle");
+      setProgressError(undefined);
       setUser(signedInUser);
       setAuthStatus("signed-in");
+      navigateToPage("learn");
     } catch (error) {
       setAuthError(
         error instanceof Error ? error.message : "Google sign-in failed.",
@@ -320,7 +419,7 @@ function App() {
     } finally {
       setIsAuthBusy(false);
     }
-  }, []);
+  }, [navigateToPage]);
 
   const handleGoogleError = useCallback((message: string) => {
     setAuthError(message);
@@ -331,6 +430,9 @@ function App() {
     setAuthError(undefined);
     try {
       await signOut();
+      setLearningProgress([]);
+      setProgressState("idle");
+      setProgressError(undefined);
       setUser(null);
       setAuthStatus("signed-out");
       navigateToPage("landing");
@@ -354,24 +456,15 @@ function App() {
   }
 
   function openWorkspace(section: WorkspaceSection = "sorting") {
-    if (page !== "workspace" || activeSection !== section) {
-      setIsPlaying(false);
-    }
-    setActiveSection(section);
-    setPage("workspace");
-    void saveTopicProgress(topicForSection(section), "in-progress");
+    const topic = topicForSection(section);
+    navigateToRoute({ page: "workspace", topicId: topic.topicId });
+    void saveTopicProgress(topic, "in-progress");
   }
 
   function openTopic(topic: LearningTopic) {
     setIsPlaying(false);
-    setActiveSection(topic.section);
-    if (topic.algorithm) {
-      setActiveAlgorithm(topic.algorithm as SortingAlgorithm);
-      setStep(0);
-    }
-    if (topic.structure) setActiveStructure(topic.structure);
-    if (topic.category === "graphs") setActiveGraphTopicId(topic.topicId);
-    setPage("workspace");
+    if (topic.algorithm) setStep(0);
+    navigateToRoute({ page: "workspace", topicId: topic.topicId });
     void saveTopicProgress(topic, "in-progress");
   }
 
@@ -474,7 +567,10 @@ function App() {
     const topic = learningTopics.find(
       (candidate) => candidate.algorithm === algorithm,
     );
-    if (topic) void saveTopicProgress(topic, "in-progress");
+    if (topic) {
+      navigateToRoute({ page: "workspace", topicId: topic.topicId });
+      void saveTopicProgress(topic, "in-progress");
+    }
   }
 
   function selectStructure(
@@ -484,7 +580,10 @@ function App() {
     const topic = learningTopics.find(
       (candidate) => candidate.structure === structure,
     );
-    if (topic) void saveTopicProgress(topic, "in-progress");
+    if (topic) {
+      navigateToRoute({ page: "workspace", topicId: topic.topicId });
+      void saveTopicProgress(topic, "in-progress");
+    }
   }
 
   const activeLearningTopic = topicForSection(activeSection);
@@ -539,6 +638,17 @@ function App() {
     };
   });
 
+  if (authStatus === "loading") {
+    return (
+      <div className="auth-initializing" aria-live="polite">
+        <section className="learn-loading-card">
+          <span className="loading-spinner" />
+          <span>Checking your sign-in session…</span>
+        </section>
+      </div>
+    );
+  }
+
   if (page === "landing") {
     return (
       <div className="landing-page">
@@ -573,9 +683,7 @@ function App() {
                 </button>
               </>
             ) : (
-              <span className="landing-nav-note">
-                {authStatus === "loading" ? "Checking session…" : "Learn at your pace"}
-              </span>
+              <span className="landing-nav-note">Learn at your pace</span>
             )}
           </div>
         </header>
@@ -604,10 +712,6 @@ function App() {
                     onClick={() => navigateToPage("learn")}
                   >
                     Continue learning <span aria-hidden="true">→</span>
-                  </button>
-                ) : authStatus === "loading" ? (
-                  <button className="primary-button" type="button" disabled>
-                    Checking sign-in…
                   </button>
                 ) : (
                   <div className="google-button-wrap">
@@ -740,6 +844,7 @@ function App() {
           page={page}
           onHome={() => navigateToPage("landing")}
           onLearn={() => navigateToPage("learn")}
+          onPlayground={() => navigateToPage("playground")}
           onOpenWorkspace={openWorkspace}
         />
         <main className="main-content learn-main">
@@ -778,18 +883,12 @@ function App() {
               ) : (
                 <span className="engine-status">
                   <span className="status-dot" />
-                  {authStatus === "loading" ? "Checking session" : "Sign in to learn"}
+                  Sign in to learn
                 </span>
               )}
             </div>
           </header>
-          {authStatus === "loading" ? (
-            <section className="learn-state-card" aria-live="polite">
-              <span className="learn-state-icon">◌</span>
-              <h2>Checking your session</h2>
-              <p>Your learning dashboard will be ready in a moment.</p>
-            </section>
-          ) : authStatus === "signed-out" ? (
+          {authStatus === "signed-out" ? (
             <section className="learn-state-card learn-locked">
               <span className="learn-state-icon">◉</span>
               <div className="eyebrow">YOUR LEARNING SPACE</div>
@@ -1192,6 +1291,34 @@ function App() {
     );
   }
 
+  if (page === "playground") {
+    return (
+      <div className="app-shell">
+        <NavigationSidebar
+          activeSection={activeSection}
+          page={page}
+          onHome={() => navigateToPage("landing")}
+          onLearn={() => navigateToPage("learn")}
+          onPlayground={() => navigateToPage("playground")}
+          onOpenWorkspace={openWorkspace}
+        />
+        <main className="main-content playground-main">
+          <header className="topbar">
+            <div>
+              <div className="breadcrumb">Workspace / Code Playground</div>
+              <h1>Code Playground</h1>
+            </div>
+            <span className="engine-status">
+              <span className="status-dot" />
+              Wandbox sandbox
+            </span>
+          </header>
+          <CodePlayground />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <NavigationSidebar
@@ -1199,6 +1326,7 @@ function App() {
         page={page}
         onHome={() => navigateToPage("landing")}
         onLearn={() => navigateToPage("learn")}
+        onPlayground={() => navigateToPage("playground")}
         onOpenWorkspace={openWorkspace}
       />
 
@@ -1232,11 +1360,7 @@ function App() {
           <div className="header-right">
             <span className="engine-status">
               <span className="status-dot" />
-              {authStatus === "loading"
-                ? "Checking session"
-                : authStatus === "signed-in"
-                  ? "Signed in"
-                  : "Preview mode"}
+              {authStatus === "signed-in" ? "Signed in" : "Preview mode"}
             </span>
             {authStatus === "signed-in" && user ? (
               <details className="profile-menu">

@@ -10,6 +10,7 @@ import {
   createLearningGoalRouter,
   createLearningProgressRouter,
 } from "./routes/learningProgress.js";
+import { createCodeExecutionRouter } from "./routes/codeExecution.js";
 
 dotenv.config();
 
@@ -26,7 +27,9 @@ function getAllowedOrigins(): Set<string> {
   }
 
   const origins = new Set(
-    isProduction ? configuredOrigins : ["http://localhost:5173", ...configuredOrigins],
+    isProduction
+      ? configuredOrigins
+      : ["http://localhost:5173", "http://127.0.0.1:5173", ...configuredOrigins],
   );
 
   for (const origin of origins) {
@@ -88,7 +91,12 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "16kb" }));
+app.use(
+  express.json({
+    limit: "16kb",
+    type: (req) => !/^\/api\/code-execution(?:\/|$)/.test(req.url ?? ""),
+  }),
+);
 app.use(cookieParser());
 
 app.get("/", (_req, res) => {
@@ -181,6 +189,11 @@ async function startServer() {
   app.use(
     "/api/learning-goal",
     createLearningGoalRouter({ allowedOrigins, sessionSecret }),
+  );
+  app.use(
+    "/api/code-execution",
+    express.json({ limit: "256kb" }),
+    createCodeExecutionRouter({ allowedOrigins }),
   );
 
   const server = app.listen(PORT, () => {

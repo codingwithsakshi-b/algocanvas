@@ -1,6 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import mongoose from "mongoose";
+import mongoose, { type QueryFilter } from "mongoose";
 import LearningProgress, {
+  type LearningProgress as LearningProgressRecord,
   type LearningProgressCategory,
   type LearningProgressStatus,
 } from "../models/LearningProgress.js";
@@ -186,10 +187,16 @@ export function createLearningProgressRouter(
       },
       ...(validStatus === "completed" ? {} : { $unset: { completedAt: 1 } }),
     };
-    const filter = {
+    const userTopicFilter = {
       userId: new mongoose.Types.ObjectId(userId),
       topicId,
     };
+    const filter: QueryFilter<LearningProgressRecord> = {
+      ...userTopicFilter,
+      status: { $ne: "completed" },
+    };
+    const fields =
+      "topicId topicName category status lastVisitedAt completedAt createdAt updatedAt";
 
     try {
       let progress;
@@ -199,18 +206,33 @@ export function createLearningProgressRouter(
           upsert: true,
           runValidators: true,
           setDefaultsOnInsert: true,
-        }).select(
-          "topicId topicName category status lastVisitedAt completedAt createdAt updatedAt",
-        );
+        }).select(fields);
       } catch (error) {
         if (!isDuplicateKeyError(error)) throw error;
-        progress = await LearningProgress.findOneAndUpdate(filter, update, {
-          new: true,
-          runValidators: true,
-        }).select(
-          "topicId topicName category status lastVisitedAt completedAt createdAt updatedAt",
-        );
-        if (!progress) throw error;
+        progress = await LearningProgress.findOneAndUpdate(
+          filter,
+          update,
+          { new: true, runValidators: true },
+        ).select(fields);
+        if (!progress) {
+          progress = await LearningProgress.findOne(userTopicFilter)
+            .select(fields);
+          if (!progress) throw error;
+          if (validStatus !== "completed" && progress.status === "completed") {
+            progress =
+              (await LearningProgress.findOneAndUpdate(
+                { ...userTopicFilter, status: "completed" },
+                {
+                  $set: {
+                    topicName: topicName.trim(),
+                    category: validCategory,
+                    lastVisitedAt: now,
+                  },
+                },
+                { new: true, runValidators: true },
+              ).select(fields)) ?? progress;
+          }
+        }
       }
 
       if (!progress) {

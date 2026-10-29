@@ -1870,6 +1870,18 @@ a:focus-visible {
   font-size: 12px;
 }
 
+.auth-initializing {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 20px;
+  background: #10131c;
+}
+
+.auth-initializing .learn-loading-card {
+  width: min(440px, 100%);
+}
+
 .loading-spinner {
   width: 17px;
   height: 17px;
