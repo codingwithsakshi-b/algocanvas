@@ -11,6 +11,11 @@ import {
   createLearningProgressRouter,
 } from "./routes/learningProgress.js";
 import { createCodeExecutionRouter } from "./routes/codeExecution.js";
+import { createProfileRouter } from "./routes/profile.js";
+import {
+  createApiJsonParser,
+  createProfilePhotoBodyParser,
+} from "./requestBodyParsing.js";
 
 dotenv.config();
 
@@ -91,12 +96,7 @@ app.use(
     credentials: true,
   }),
 );
-app.use(
-  express.json({
-    limit: "16kb",
-    type: (req) => !/^\/api\/code-execution(?:\/|$)/.test(req.url ?? ""),
-  }),
-);
+app.use(createApiJsonParser());
 app.use(cookieParser());
 
 app.get("/", (_req, res) => {
@@ -180,6 +180,19 @@ async function startServer() {
       isProduction,
       sameSite,
       sessionSecret,
+    }),
+  );
+  app.use(
+    "/api/profile/avatar",
+    ...createProfilePhotoBodyParser(),
+  );
+  app.use(
+    "/api/profile",
+    createProfileRouter({
+      allowedOrigins,
+      sessionSecret,
+      isProduction,
+      sameSite,
     }),
   );
   app.use(

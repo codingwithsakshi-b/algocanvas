@@ -36,6 +36,7 @@ interface CodeEditorProps {
   language: PlaygroundLanguage;
   value: string;
   readOnly: boolean;
+  editorFontSize: number;
   onChange: (value: string) => void;
   onRunShortcut: () => void;
   onSaveShortcut: () => void;
@@ -45,6 +46,7 @@ function CodeEditor({
   language,
   value,
   readOnly,
+  editorFontSize,
   onChange,
   onRunShortcut,
   onSaveShortcut,
@@ -113,7 +115,7 @@ function CodeEditor({
               ".cm-scroller": {
                 overflow: "auto",
                 fontFamily: "var(--mono)",
-                fontSize: "13px",
+                fontSize: `${editorFontSize}px`,
               },
               ".cm-gutters": {
                 backgroundColor: "#11151e",
@@ -147,7 +149,7 @@ function CodeEditor({
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [language]);
+  }, [editorFontSize, language]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -164,9 +166,19 @@ function CodeEditor({
   );
 }
 
-function CodePlayground() {
-  const [language, setLanguage] = useState<PlaygroundLanguage>("cpp");
-  const [filename, setFilename] = useState("main.cpp");
+interface CodePlaygroundProps {
+  preferredLanguage?: PlaygroundLanguage;
+  editorFontSize?: number;
+}
+
+function CodePlayground({
+  preferredLanguage = "cpp",
+  editorFontSize = 13,
+}: CodePlaygroundProps) {
+  const [language, setLanguage] = useState<PlaygroundLanguage>(preferredLanguage);
+  const [filename, setFilename] = useState(
+    `main${getLanguageOption(preferredLanguage).extension}`,
+  );
   const [source, setSource] = useState("");
   const [savedDrafts, setSavedDrafts] = useState<LanguageDrafts>(emptyDrafts);
   const [drafts, setDrafts] = useState<LanguageDrafts>(emptyDrafts);
@@ -504,6 +516,7 @@ function CodePlayground() {
           language={language}
           value={source}
           readOnly={isExecuting}
+          editorFontSize={editorFontSize}
           onChange={handleSourceChange}
           onRunShortcut={runCode}
           onSaveShortcut={downloadFile}

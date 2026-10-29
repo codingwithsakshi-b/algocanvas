@@ -5,6 +5,13 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  username?: string;
+  displayName?: string;
+  bio?: string;
+  customAvatarId?: mongoose.Types.ObjectId;
+  preferredLanguage?: "cpp" | "c" | "python" | "java";
+  learningLevel?: "beginner" | "intermediate" | "advanced";
+  editorFontSize?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +42,45 @@ const userSchema = new mongoose.Schema<User>(
     avatar: {
       type: String,
       trim: true,
+    },
+    username: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      minlength: 3,
+      maxlength: 24,
+      match: /^[a-z0-9_]+$/,
+      unique: true,
+      sparse: true,
+    },
+    displayName: {
+      type: String,
+      trim: true,
+      maxlength: 60,
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 280,
+    },
+    customAvatarId: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    preferredLanguage: {
+      type: String,
+      enum: ["cpp", "c", "python", "java"],
+      default: "cpp",
+    },
+    learningLevel: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced"],
+      default: "beginner",
+    },
+    editorFontSize: {
+      type: Number,
+      min: 10,
+      max: 24,
+      default: 13,
     },
   },
   { timestamps: true },

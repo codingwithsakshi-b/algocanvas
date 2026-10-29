@@ -1783,6 +1783,56 @@ a:focus-visible {
   text-align: left;
 }
 
+.profile-menu-dropdown > button:not(.topbar-signout) {
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+}
+
+.profile-menu-dropdown > button:not(.topbar-signout):hover {
+  color: var(--lime-strong);
+}
+
+.profile-menu-dropdown > button:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+.landing-account-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--lime-strong);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.landing-account-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-main {
+  max-width: 1280px;
+}
+
+.account-main > .topbar {
+  position: relative;
+  z-index: 6;
+}
+
 .learn-welcome {
   display: flex;
   align-items: center;

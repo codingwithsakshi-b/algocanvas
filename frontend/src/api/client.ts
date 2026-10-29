@@ -8,6 +8,28 @@ export interface AuthUser {
   name: string;
   email: string;
   avatar?: string;
+  username?: string;
+  displayName?: string;
+  preferences?: AccountPreferences;
+}
+
+export type ProfileLanguage = "cpp" | "c" | "python" | "java";
+export type LearningLevel = "beginner" | "intermediate" | "advanced";
+
+export interface AccountPreferences {
+  preferredLanguage: ProfileLanguage;
+  learningLevel: LearningLevel;
+  editorFontSize: number;
+}
+
+export interface AccountProfile extends AuthUser {
+  username: string;
+  displayName: string;
+  bio: string;
+  createdAt: string;
+  authMethod: "Google";
+  hasCustomAvatar: boolean;
+  preferences: AccountPreferences;
 }
 
 export type LearningProgressCategory = "sorting" | "data-structures" | "graphs";
@@ -57,8 +79,70 @@ function isAuthUser(value: unknown): value is AuthUser {
     typeof value.name === "string" &&
     "email" in value &&
     typeof value.email === "string" &&
-    (!("avatar" in value) || typeof value.avatar === "string")
+    (!("avatar" in value) || typeof value.avatar === "string") &&
+    (!("username" in value) || typeof value.username === "string") &&
+    (!("displayName" in value) || typeof value.displayName === "string") &&
+    (!("preferences" in value) || isAccountPreferences(value.preferences))
   );
+}
+
+function isAccountPreferences(value: unknown): value is AccountPreferences {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "preferredLanguage" in value &&
+    (value.preferredLanguage === "cpp" ||
+      value.preferredLanguage === "c" ||
+      value.preferredLanguage === "python" ||
+      value.preferredLanguage === "java") &&
+    "learningLevel" in value &&
+    (value.learningLevel === "beginner" ||
+      value.learningLevel === "intermediate" ||
+      value.learningLevel === "advanced") &&
+    "editorFontSize" in value &&
+    typeof value.editorFontSize === "number" &&
+    Number.isInteger(value.editorFontSize) &&
+    value.editorFontSize >= 10 &&
+    value.editorFontSize <= 24
+  );
+}
+
+function isAccountProfile(value: unknown): value is AccountProfile {
+  return (
+    isAuthUser(value) &&
+    "username" in value &&
+    typeof value.username === "string" &&
+    "displayName" in value &&
+    typeof value.displayName === "string" &&
+    "bio" in value &&
+    typeof value.bio === "string" &&
+    "createdAt" in value &&
+    typeof value.createdAt === "string" &&
+    "authMethod" in value &&
+    value.authMethod === "Google" &&
+    "hasCustomAvatar" in value &&
+    typeof value.hasCustomAvatar === "boolean" &&
+    "preferences" in value &&
+    isAccountPreferences(value.preferences)
+  );
+}
+
+async function readProfile(response: Response): Promise<AccountProfile> {
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch (error) {
+    throw new Error("Profile endpoint returned invalid JSON", { cause: error });
+  }
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("profile" in data) ||
+    !isAccountProfile(data.profile)
+  ) {
+    throw new Error("Profile endpoint returned an invalid profile");
+  }
+  return data.profile;
 }
 
 function isLearningProgressRecord(
@@ -295,6 +379,89 @@ export async function signOut(): Promise<void> {
     });
   }
 
+  if (!response.ok) throw await authError(response);
+}
+
+export async function getAccountProfile(): Promise<AccountProfile> {
+  const response = await fetch("/api/profile", { credentials: "include" });
+  if (!response.ok) throw await authError(response);
+  return readProfile(response);
+}
+
+export async function checkUsernameAvailability(
+  username: string,
+): Promise<boolean> {
+  const response = await fetch(
+    `/api/profile/username-availability?username=${encodeURIComponent(username)}`,
+    { credentials: "include" },
+  );
+  if (!response.ok) throw await authError(response);
+  const data: unknown = await response.json();
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("available" in data) ||
+    typeof data.available !== "boolean"
+  ) {
+    throw new Error("Username availability endpoint returned an invalid response");
+  }
+  return data.available;
+}
+
+export async function updateAccountProfile(input: {
+  name: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  preferredLanguage: ProfileLanguage;
+  learningLevel: LearningLevel;
+  editorFontSize: number;
+}): Promise<AccountProfile> {
+  const response = await fetch("/api/profile", {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw await authError(response);
+  return readProfile(response);
+}
+
+export async function uploadProfileAvatar(file: File): Promise<AccountProfile> {
+  const response = await fetch("/api/profile/avatar", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!response.ok) throw await authError(response);
+  return readProfile(response);
+}
+
+export async function removeProfileAvatar(): Promise<AccountProfile> {
+  const response = await fetch("/api/profile/avatar", {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) throw await authError(response);
+  return readProfile(response);
+}
+
+export async function exportAccountData(): Promise<Blob> {
+  const response = await fetch("/api/profile/export", {
+    credentials: "include",
+  });
+  if (!response.ok) throw await authError(response);
+  return response.blob();
+}
+
+export async function deleteAccount(): Promise<void> {
+  const response = await fetch("/api/profile/account", {
+    method: "DELETE",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirmation: "DELETE" }),
+  });
   if (!response.ok) throw await authError(response);
 }
 

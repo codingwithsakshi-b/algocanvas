@@ -14,6 +14,8 @@ test("the root and public home resolve to the landing page", () => {
 test("Learn and workspace topic routes survive refreshable URL parsing", () => {
   assert.deepEqual(resolveAppRoute("#learn"), { page: "learn" });
   assert.deepEqual(resolveAppRoute("#playground"), { page: "playground" });
+  assert.deepEqual(resolveAppRoute("#profile"), { page: "profile" });
+  assert.deepEqual(resolveAppRoute("#settings"), { page: "settings" });
   assert.deepEqual(resolveAppRoute("#workspace/sorting-bubble-sort"), {
     page: "workspace",
     topicId: "sorting-bubble-sort",
@@ -54,4 +56,6 @@ test("workspace route hashes identify their topic", () => {
   );
   assert.equal(hashForRoute({ page: "learn" }), "#learn");
   assert.equal(hashForRoute({ page: "playground" }), "#playground");
+  assert.equal(hashForRoute({ page: "profile" }), "#profile");
+  assert.equal(hashForRoute({ page: "settings" }), "#settings");
 });

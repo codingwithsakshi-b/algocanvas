@@ -6,11 +6,34 @@ import {
   getCurrentUser,
   getHealth,
   deleteLearningGoal,
+  deleteAccount,
+  exportAccountData,
+  getAccountProfile,
   saveLearningGoal,
   saveLearningProgress,
+  updateAccountProfile,
   signInWithGoogle,
   signOut,
+  uploadProfileAvatar,
 } from "../src/api/client.ts";
+
+const accountProfile = {
+  id: "user-123",
+  name: "Ada Lovelace",
+  email: "ada@example.com",
+  username: "ada_codes",
+  displayName: "Ada",
+  bio: "Learning algorithms",
+  avatar: "https://example.com/avatar.png",
+  hasCustomAvatar: false,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  authMethod: "Google",
+  preferences: {
+    preferredLanguage: "python",
+    learningLevel: "intermediate",
+    editorFontSize: 16,
+  },
+} as const;
 
 test("getHealth requests and returns the API health response", async (context) => {
   let requestedUrl: string | undefined;
@@ -266,4 +289,96 @@ test("deleteLearningGoal sends an authenticated DELETE request", async (context)
   await deleteLearningGoal();
   assert.equal(requestInit?.method, "DELETE");
   assert.equal(requestInit?.credentials, "include");
+});
+
+test("getAccountProfile loads the saved profile using the session cookie", async (context) => {
+  let requestInit: RequestInit | undefined;
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (_input: URL | RequestInfo, init?: RequestInit) => {
+      requestInit = init;
+      return new Response(JSON.stringify({ profile: accountProfile }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+  );
+  assert.deepEqual(await getAccountProfile(), accountProfile);
+  assert.equal(requestInit?.credentials, "include");
+});
+
+test("updateAccountProfile sends only permitted fields and session credentials", async (context) => {
+  let requestedUrl: string | undefined;
+  let requestInit: RequestInit | undefined;
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (input: URL | RequestInfo, init?: RequestInit) => {
+      requestedUrl = String(input);
+      requestInit = init;
+      return new Response(JSON.stringify({ profile: accountProfile }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+  );
+  const input = {
+    name: accountProfile.name,
+    username: accountProfile.username,
+    displayName: accountProfile.displayName,
+    bio: accountProfile.bio,
+    ...accountProfile.preferences,
+  };
+  await updateAccountProfile(input);
+  assert.equal(requestedUrl, "/api/profile");
+  assert.equal(requestInit?.method, "PUT");
+  assert.equal(requestInit?.credentials, "include");
+  assert.deepEqual(JSON.parse(String(requestInit?.body)), input);
+});
+
+test("uploadProfileAvatar sends a 122,391-byte JPEG File as raw bytes", async (context) => {
+  const file = new File([new Uint8Array(122391)], "profile.jpg", {
+    type: "image/jpeg",
+  });
+  let requestInit: RequestInit | undefined;
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (_input: URL | RequestInfo, init?: RequestInit) => {
+      requestInit = init;
+      return new Response(JSON.stringify({ message: "test upload response" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+  );
+  await assert.rejects(uploadProfileAvatar(file), {
+    message: "test upload response",
+  });
+  assert.equal(file.size, 122391);
+  assert.equal(requestInit?.credentials, "include");
+  assert.equal(requestInit?.headers && new Headers(requestInit.headers).get("Content-Type"), "image/jpeg");
+  assert.equal(requestInit?.body, file);
+});
+
+test("export and delete account operations use authenticated account endpoints", async (context) => {
+  const requested: { url: string; init?: RequestInit }[] = [];
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (input: URL | RequestInfo, init?: RequestInit) => {
+      requested.push({ url: String(input), init });
+      return new Response(null, { status: 204 });
+    },
+  );
+  const exportResult = await exportAccountData();
+  assert.equal(exportResult.size, 0);
+  await deleteAccount();
+  assert.equal(requested[0]?.url, "/api/profile/export");
+  assert.equal(requested[0]?.init?.credentials, "include");
+  assert.equal(requested[1]?.url, "/api/profile/account");
+  assert.equal(requested[1]?.init?.method, "DELETE");
+  assert.equal(requested[1]?.init?.credentials, "include");
+  assert.deepEqual(JSON.parse(String(requested[1]?.init?.body)), {
+    confirmation: "DELETE",
+  });
 });

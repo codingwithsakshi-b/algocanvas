@@ -90,7 +90,7 @@ function setUserProfile(
   },
 ): void {
   user.googleId = profile.googleId;
-  user.name = profile.name;
+  if (!user.name) user.name = profile.name;
   user.email = profile.email;
   user.set("avatar", profile.avatar);
 }
@@ -100,12 +100,29 @@ function safeUserProfile(user: {
   name: string;
   email: string;
   avatar?: string;
+  username?: string;
+  displayName?: string;
+  customAvatarId?: mongoose.Types.ObjectId;
+  preferredLanguage?: UserRecord["preferredLanguage"];
+  learningLevel?: UserRecord["learningLevel"];
+  editorFontSize?: number;
 }) {
   return {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
-    ...(user.avatar ? { avatar: user.avatar } : {}),
+    ...(user.username ? { username: user.username } : {}),
+    ...(user.displayName ? { displayName: user.displayName } : {}),
+    ...(user.customAvatarId
+      ? { avatar: `/api/profile/avatar?v=${user.customAvatarId.toString()}` }
+      : user.avatar
+        ? { avatar: user.avatar }
+        : {}),
+    preferences: {
+      preferredLanguage: user.preferredLanguage ?? "cpp",
+      learningLevel: user.learningLevel ?? "beginner",
+      editorFontSize: user.editorFontSize ?? 13,
+    },
   };
 }
 
@@ -227,7 +244,9 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
       return;
     }
 
-    const user = await User.findById(subject).select("name email avatar");
+    const user = await User.findById(subject).select(
+      "name email avatar username displayName customAvatarId preferredLanguage learningLevel editorFontSize",
+    );
     if (!user) {
       res.status(401).json({ message: "Session is invalid or expired." });
       return;

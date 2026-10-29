@@ -1,6 +1,12 @@
 import { learningTopics, type LearningTopic } from "./learning/topics.ts";
 
-export type AppPage = "landing" | "workspace" | "learn" | "playground";
+export type AppPage =
+  | "landing"
+  | "workspace"
+  | "learn"
+  | "playground"
+  | "profile"
+  | "settings";
 export type WorkspaceSection = LearningTopic["section"];
 
 export interface AppRoute {
@@ -16,6 +22,8 @@ export function resolveAppRoute(hash: string): AppRoute {
   if (!route || route === "home") return { page: "landing" };
   if (route === "learn") return { page: "learn" };
   if (route === "playground") return { page: "playground" };
+  if (route === "profile") return { page: "profile" };
+  if (route === "settings") return { page: "settings" };
   if (route === "workspace") {
     const topic = learningTopics.find((candidate) => candidate.topicId === topicId);
     return {
@@ -47,5 +55,7 @@ export function hashForRoute(route: AppRoute): string {
   if (route.page === "landing") return "#home";
   if (route.page === "learn") return "#learn";
   if (route.page === "playground") return "#playground";
+  if (route.page === "profile") return "#profile";
+  if (route.page === "settings") return "#settings";
   return `#workspace/${route.topicId ?? defaultTopic.topicId}`;
 }

@@ -12,6 +12,7 @@ import GraphExplorer from "./components/GraphExplorer";
 import GoogleSignInButton from "./components/GoogleSignInButton";
 import LearningGoalPanel from "./components/LearningGoalPanel";
 import CodePlayground from "./components/CodePlayground";
+import AccountPage from "./components/AccountPage";
 import {
   getLearningProgress,
   getCurrentUser,
@@ -39,6 +40,42 @@ import "./App.css";
 
 const initialValues = [42, 72, 34, 88, 56, 24, 65, 48, 92, 38, 61, 29];
 type Page = AppPage;
+
+interface AccountMenuProps {
+  user: AuthUser;
+  isBusy: boolean;
+  onNavigate: (page: Page) => void;
+  onLogout: () => void;
+}
+
+function AccountMenu({ user, isBusy, onNavigate, onLogout }: AccountMenuProps) {
+  const accountName = user.displayName || user.name;
+  return (
+    <details className="profile-menu">
+      <summary aria-label="Open profile and account settings">
+        {user.avatar ? (
+          <img className="avatar avatar-image" src={user.avatar} alt="" />
+        ) : (
+          <span className="avatar" aria-hidden="true">
+            {accountName.slice(0, 1).toUpperCase()}
+          </span>
+        )}
+        <span className="profile-menu-name">{accountName}</span>
+        <span className="profile-menu-chevron">⌄</span>
+      </summary>
+      <div className="profile-menu-dropdown">
+        <strong>{accountName}</strong>
+        <span>{user.username ? `@${user.username}` : "Set your username"}</span>
+        <span>{user.email}</span>
+        <button type="button" onClick={() => onNavigate("profile")}>View profile</button>
+        <button type="button" onClick={() => onNavigate("settings")}>Account settings</button>
+        <button className="topbar-signout" type="button" onClick={onLogout} disabled={isBusy}>
+          Sign out
+        </button>
+      </div>
+    </details>
+  );
+}
 
 interface NavigationSidebarProps {
   activeSection: WorkspaceSection;
@@ -666,6 +703,20 @@ function App() {
             </button>
             {authStatus === "signed-in" ? (
               <>
+                {user && (
+                  <button
+                    className="landing-account-button"
+                    type="button"
+                    aria-label="Open profile"
+                    onClick={() => navigateToPage("profile")}
+                  >
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="" />
+                    ) : (
+                      <span>{(user.displayName || user.name).slice(0, 1).toUpperCase()}</span>
+                    )}
+                  </button>
+                )}
                 <button
                   className="landing-nav-link"
                   type="button"
@@ -855,31 +906,12 @@ function App() {
             </div>
             <div className="header-right">
               {authStatus === "signed-in" && user ? (
-                <details className="profile-menu">
-                  <summary aria-label="Open profile menu">
-                    {user.avatar ? (
-                      <img className="avatar avatar-image" src={user.avatar} alt="" />
-                    ) : (
-                      <span className="avatar" aria-hidden="true">
-                        {user.name.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    <span className="profile-menu-name">{user.name}</span>
-                    <span className="profile-menu-chevron">⌄</span>
-                  </summary>
-                  <div className="profile-menu-dropdown">
-                    <strong>{user.name}</strong>
-                    <span>{user.email}</span>
-                    <button
-                      className="topbar-signout"
-                      type="button"
-                      onClick={() => void handleLogout()}
-                      disabled={isAuthBusy}
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                </details>
+                <AccountMenu
+                  user={user}
+                  isBusy={isAuthBusy}
+                  onNavigate={navigateToPage}
+                  onLogout={() => void handleLogout()}
+                />
               ) : (
                 <span className="engine-status">
                   <span className="status-dot" />
@@ -1291,6 +1323,69 @@ function App() {
     );
   }
 
+  if (page === "profile" || page === "settings") {
+    return (
+      <div className="app-shell">
+        <NavigationSidebar
+          activeSection={activeSection}
+          page={page}
+          onHome={() => navigateToPage("landing")}
+          onLearn={() => navigateToPage("learn")}
+          onPlayground={() => navigateToPage("playground")}
+          onOpenWorkspace={openWorkspace}
+        />
+        <main className="main-content account-main">
+          <header className="topbar">
+            <div>
+              <div className="breadcrumb">Workspace / Account</div>
+              <h1>{page === "profile" ? "Profile" : "Settings"}</h1>
+            </div>
+            {authStatus === "signed-in" && user && (
+              <div className="header-right">
+                <AccountMenu
+                  user={user}
+                  isBusy={isAuthBusy}
+                  onNavigate={navigateToPage}
+                  onLogout={() => void handleLogout()}
+                />
+              </div>
+            )}
+          </header>
+          {authStatus === "signed-in" && user ? (
+            <AccountPage
+              page={page}
+              user={user}
+              isAuthBusy={isAuthBusy}
+              onNavigate={navigateToPage}
+              onUserUpdate={setUser}
+              onLogout={() => void handleLogout()}
+              onAccountDeleted={() => {
+                setLearningProgress([]);
+                setProgressState("idle");
+                setUser(null);
+                setAuthStatus("signed-out");
+                navigateToPage("landing");
+              }}
+            />
+          ) : (
+            <section className="account-state-card">
+              <span className="account-eyebrow">YOUR ACCOUNT</span>
+              <h2>Sign in to manage your account.</h2>
+              <p>Profile details and learning progress are available after Google sign-in.</p>
+              <button
+                className="account-primary-button"
+                type="button"
+                onClick={() => navigateToPage("learn")}
+              >
+                Go to sign in
+              </button>
+            </section>
+          )}
+        </main>
+      </div>
+    );
+  }
+
   if (page === "playground") {
     return (
       <div className="app-shell">
@@ -1308,12 +1403,33 @@ function App() {
               <div className="breadcrumb">Workspace / Code Playground</div>
               <h1>Code Playground</h1>
             </div>
-            <span className="engine-status">
-              <span className="status-dot" />
-              Wandbox sandbox
-            </span>
+            <div className="header-right">
+              <span className="engine-status">
+                <span className="status-dot" />
+                Wandbox sandbox
+              </span>
+              {authStatus === "signed-in" && user ? (
+                <AccountMenu
+                  user={user}
+                  isBusy={isAuthBusy}
+                  onNavigate={navigateToPage}
+                  onLogout={() => void handleLogout()}
+                />
+              ) : (
+                <button
+                  className="topbar-signout"
+                  type="button"
+                  onClick={() => navigateToPage("learn")}
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
           </header>
-          <CodePlayground />
+          <CodePlayground
+            preferredLanguage={user?.preferences?.preferredLanguage}
+            editorFontSize={user?.preferences?.editorFontSize}
+          />
         </main>
       </div>
     );
@@ -1363,31 +1479,12 @@ function App() {
               {authStatus === "signed-in" ? "Signed in" : "Preview mode"}
             </span>
             {authStatus === "signed-in" && user ? (
-              <details className="profile-menu">
-                <summary aria-label="Open profile menu">
-                  {user.avatar ? (
-                    <img className="avatar avatar-image" src={user.avatar} alt="" />
-                  ) : (
-                    <span className="avatar" aria-hidden="true">
-                      {user.name.slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
-                  <span className="profile-menu-name">{user.name}</span>
-                  <span className="profile-menu-chevron">⌄</span>
-                </summary>
-                <div className="profile-menu-dropdown">
-                  <strong>{user.name}</strong>
-                  <span>{user.email}</span>
-                  <button
-                    className="topbar-signout"
-                    type="button"
-                    onClick={() => void handleLogout()}
-                    disabled={isAuthBusy}
-                  >
-                    Sign out
-                  </button>
-                </div>
-              </details>
+              <AccountMenu
+                user={user}
+                isBusy={isAuthBusy}
+                onNavigate={navigateToPage}
+                onLogout={() => void handleLogout()}
+              />
             ) : (
               <button
                 className="topbar-signout"
