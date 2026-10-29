@@ -296,3 +296,53 @@
     animation: none;
   }
 }
+
+:root {
+  --stack-surface: rgba(17, 20, 18, 1);
+  --stack-border: rgba(199, 243, 107, 0.18);
+}
+
+.stacks-queues-workspace,
+.stacks-queues-visualization,
+.stacks-queues-status {
+  border-color: var(--border);
+  background: linear-gradient(180deg, rgba(20, 23, 20, 1), rgba(17, 20, 18, 1));
+}
+
+.stack-item,
+.queue-slot {
+  border-color: rgba(199, 243, 107, 0.2);
+  background: linear-gradient(145deg, rgba(27, 31, 27, 1), rgba(18, 20, 18, 1));
+  color: var(--text);
+}
+
+.stack-item.is-highlighted,
+.queue-slot.is-highlighted:not(.is-empty) {
+  border-color: rgba(199, 243, 107, 0.8);
+  background: linear-gradient(145deg, rgba(199, 243, 107, 0.18), rgba(25, 29, 25, 1));
+  box-shadow: 0 0 0 1px rgba(199, 243, 107, 0.1), 0 0 18px rgba(199, 243, 107, 0.12);
+}
+
+.stack-top-label,
+.queue-end-label,
+.queue-slot-index,
+.operation-result {
+  color: var(--lime-strong);
+}
+
+.queue-slot.is-empty {
+  border-color: var(--border);
+  background: rgba(17, 20, 18, 1);
+  color: var(--text-muted);
+}
+
+.stacks-queues-input input,
+.stacks-queues-toolbar button {
+  border-color: var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+.stacks-queues-learning strong {
+  color: var(--lime-strong);
+}

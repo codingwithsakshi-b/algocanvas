@@ -2,14 +2,32 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap");
 
 :root {
+  --bg: #101110;
+  --bg-secondary: #171916;
+  --surface: #1d201c;
+  --surface-strong: #222822;
+  --panel: #171916;
+  --border: #30342d;
+  --border-strong: #3c4338;
+  --text: #f2f2ea;
+  --text-secondary: #a5aa9f;
+  --text-muted: #737a70;
+  --lime: #c7f36b;
+  --lime-strong: #d8ff8a;
+  --lime-soft: rgba(199, 243, 107, 0.14);
+  --success: #9bd878;
+  --warning: #e9b86e;
+  --error: #ef7777;
+  --shadow: rgba(0, 0, 0, 0.32);
+  --mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+
   font-family: "DM Sans", sans-serif;
-  color: #f3f2fa;
-  background: #10131c;
+  color: var(--text);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   font-optical-sizing: auto;
   font-weight: 400;
 }
@@ -28,6 +46,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
 }
 
 button,
@@ -44,11 +64,20 @@ button {
 button:focus-visible,
 a:focus-visible,
 select:focus-visible {
-  outline: 2px solid #a99aff;
+  outline: 2px solid var(--lime);
   outline-offset: 3px;
 }
 
 ::selection {
-  color: #10131c;
-  background: #b4a5ff;
+  color: var(--bg);
+  background: var(--lime);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+img {
+  max-width: 100%;
+  display: block;
 }

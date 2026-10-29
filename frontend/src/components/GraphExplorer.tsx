@@ -11,6 +11,7 @@ import {
   replayGraphEvents,
   setGraphMode,
   updateEdgeWeight,
+  type GraphAlgorithm,
   type GraphAlgorithmResult,
   type GraphDefinition,
   type GraphEdge,
@@ -18,7 +19,11 @@ import {
 } from "../algorithms/graph";
 import "./GraphExplorer.css";
 
-type AlgorithmMode = "bfs" | "dfs" | "dijkstra";
+interface GraphExplorerProps {
+  algorithm: GraphAlgorithm;
+  onTopicStart: (topicId: string) => void;
+  onTopicComplete: (topicId: string) => void;
+}
 
 const sampleGraph = createGraph(
   ["A", "B", "C", "D", "E", "F"],
@@ -42,7 +47,11 @@ function parseWeight(input: string): number | null {
     : null;
 }
 
-function GraphExplorer() {
+function GraphExplorer({
+  algorithm,
+  onTopicStart,
+  onTopicComplete,
+}: GraphExplorerProps) {
   const [graph, setGraph] = useState<GraphDefinition>(sampleGraph);
   const [vertexName, setVertexName] = useState("");
   const [edgeFrom, setEdgeFrom] = useState("A");
@@ -52,10 +61,10 @@ function GraphExplorer() {
   const [selectedVertex, setSelectedVertex] = useState<string | null>(null);
   const [startVertex, setStartVertex] = useState("A");
   const [destinationVertex, setDestinationVertex] = useState("F");
-  const [algorithm, setAlgorithm] = useState<AlgorithmMode>("bfs");
   const [result, setResult] = useState<GraphAlgorithmResult | null>(null);
   const [step, setStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackDelay, setPlaybackDelay] = useState(700);
   const [status, setStatus] = useState(
     "Ready. Add vertices and edges, or run an algorithm on the sample graph.",
   );
@@ -92,14 +101,17 @@ function GraphExplorer() {
       const nextStep = Math.min(step + 1, result.events.length);
       setStep(nextStep);
       if (nextStep >= result.events.length) setIsPlaying(false);
+      if (nextStep >= result.events.length) {
+        onTopicComplete(`graphs-${result.algorithm}`);
+      }
       setStatus(
         nextStep === result.events.length
           ? result.finalMessage
           : result.events[nextStep - 1].explanation,
       );
-    }, 700);
+    }, playbackDelay);
     return () => window.clearTimeout(timeout);
-  }, [isPlaying, result, step]);
+  }, [isPlaying, onTopicComplete, playbackDelay, result, step]);
 
   function invalidatePlayback(message?: string) {
     setIsPlaying(false);
@@ -225,10 +237,16 @@ function GraphExplorer() {
       setStatus(nextResult.finalMessage);
       return;
     }
+    if (nextResult.events.length > 1) {
+      onTopicStart(`graphs-${algorithm}`);
+    }
     setResult(nextResult);
     setStep(1);
     setIsPlaying(false);
     setStatus(nextResult.events[0].explanation);
+    if (nextResult.events.length === 1) {
+      onTopicComplete(`graphs-${algorithm}`);
+    }
   }
 
   function play() {
@@ -252,6 +270,9 @@ function GraphExplorer() {
     if (step >= result.events.length) return;
     const nextStep = step + 1;
     setStep(nextStep);
+    if (nextStep >= result.events.length) {
+      onTopicComplete(`graphs-${result.algorithm}`);
+    }
     setStatus(
       nextStep === result.events.length
         ? result.finalMessage
@@ -593,7 +614,7 @@ function GraphExplorer() {
               onChange={(event) => {
                 const value = event.target.value;
                 if (value === "bfs" || value === "dfs" || value === "dijkstra") {
-                  setAlgorithm(value);
+                  onTopicStart(`graphs-${value}`);
                   invalidatePlayback("Algorithm changed. Choose endpoints and start a new run.");
                 }
               }}
@@ -649,15 +670,27 @@ function GraphExplorer() {
             <button className="array-play-button" type="button" onClick={() => setIsPlaying(false)} disabled={!isPlaying}>
               Ⅱ Pause
             </button>
-            <button className="array-step-button" type="button" onClick={stepBackward} disabled={result === null || step === 0 || isPlaying}>
+            <button className="array-step-button" type="button" onClick={stepBackward} disabled={result === null || step === 0}>
               ← Step back
             </button>
-            <button className="array-step-button" type="button" onClick={stepForward} disabled={names.length === 0 || completed || isPlaying}>
+            <button className="array-step-button" type="button" onClick={stepForward} disabled={names.length === 0 || completed}>
               Step forward →
             </button>
             <button className="array-step-button" type="button" onClick={resetPlayback}>
               Reset
             </button>
+            <label className="graph-playback-speed" htmlFor="graph-playback-speed">
+              Speed
+              <select
+                id="graph-playback-speed"
+                value={playbackDelay}
+                onChange={(event) => setPlaybackDelay(Number(event.target.value))}
+              >
+                <option value={1400}>0.5×</option>
+                <option value={700}>1×</option>
+                <option value={350}>2×</option>
+              </select>
+            </label>
           </div>
           <div className="graph-playback-state" aria-live="polite">
             <span className="eyebrow">STEP {result === null ? 0 : step} / {result?.events.length ?? 0}</span>

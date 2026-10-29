@@ -240,8 +240,28 @@
 
 .tree-traversal-controls {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 7px;
+}
+
+.tree-traversal-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #9ca3b5;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.tree-traversal-speed select {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid #363b4c;
+  border-radius: 6px;
+  background: #202432;
+  color: #f1effa;
+  font: inherit;
 }
 
 .tree-traversal-controls .array-play-button,
@@ -315,4 +335,54 @@
   .tree-node circle {
     transition: none;
   }
+}
+
+:root {
+  --tree-surface: rgba(17, 20, 18, 1);
+  --tree-border: rgba(199, 243, 107, 0.18);
+}
+
+.trees-workspace,
+.trees-visualization,
+.tree-node-details,
+.tree-traversal {
+  border-color: var(--border);
+  background: linear-gradient(180deg, rgba(20, 23, 20, 1), rgba(17, 20, 18, 1));
+}
+
+.tree-edge {
+  stroke: rgba(199, 243, 107, 0.36);
+}
+
+.tree-node circle {
+  fill: rgba(28, 31, 27, 1);
+  stroke: rgba(199, 243, 107, 0.24);
+}
+
+.tree-node.is-visited circle {
+  fill: rgba(199, 243, 107, 0.08);
+  stroke: var(--lime);
+}
+
+.tree-node.is-selected circle,
+.tree-node.is-current circle {
+  fill: rgba(199, 243, 107, 0.18);
+  stroke: var(--lime-strong);
+}
+
+.trees-status,
+.trees-visited {
+  color: var(--lime-strong);
+}
+
+.trees-operations input,
+.tree-traversal-select select,
+.trees-toolbar button {
+  border-color: var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+.trees-learning strong {
+  color: var(--lime-strong);
 }

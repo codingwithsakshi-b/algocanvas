@@ -320,6 +320,20 @@
   opacity: 0.55;
 }
 
+.graph-playback-speed {
+  margin-left: auto;
+}
+
+.graph-playback-speed select {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid #363b4c;
+  border-radius: 6px;
+  background: #202432;
+  color: #f1effa;
+  font: inherit;
+}
+
 .graph-playback-state {
   display: grid;
   gap: 6px;
@@ -448,4 +462,113 @@
   .graph-vertex circle {
     transition: none;
   }
+}
+
+:root {
+  --graph-surface: rgba(22, 24, 19, 0.96);
+  --graph-panel: rgba(17, 20, 18, 0.98);
+  --graph-border: rgba(199, 243, 107, 0.14);
+  --graph-alt: rgba(199, 243, 107, 0.08);
+}
+
+.graph-workspace {
+  border: 1px solid var(--graph-border);
+  background: linear-gradient(180deg, rgba(23, 25, 22, 0.98), rgba(17, 20, 18, 1));
+}
+
+.graph-mode-controls label,
+.graph-editor-form h4,
+.graph-editor-form p,
+.graph-empty,
+.graph-legend,
+.graph-weight-label text,
+.graph-vertex text,
+.graph-readout > strong,
+.graph-status,
+.graph-playback-state > span:last-child,
+.graph-distance-readout {
+  color: var(--text-secondary);
+}
+
+.graph-editor-form {
+  background: rgba(17, 20, 18, 0.8);
+  border-color: var(--graph-border);
+}
+
+.graph-editor-form input,
+.graph-editor-form select,
+.graph-algorithm-controls select,
+.graph-playback-speed select {
+  background: #111512;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.graph-canvas {
+  background-color: rgba(11, 13, 12, 0.8);
+  background-image: radial-gradient(rgba(199, 243, 107, 0.09) 0.7px, transparent 0.7px);
+  border-color: var(--graph-border);
+}
+
+.graph-edge {
+  stroke: rgba(212, 222, 206, 0.6);
+}
+
+.graph-edge.is-active {
+  stroke: var(--warning);
+}
+
+.graph-edge.is-path {
+  stroke: var(--lime);
+}
+
+.graph-weight-label rect {
+  fill: rgba(11, 13, 12, 0.96);
+  stroke: rgba(199, 243, 107, 0.2);
+}
+
+.graph-weight-label text {
+  fill: var(--text);
+}
+
+.graph-vertex circle {
+  fill: rgba(34, 40, 34, 1);
+  stroke: rgba(199, 243, 107, 0.2);
+}
+
+.graph-vertex.is-discovered circle {
+  fill: rgba(199, 243, 107, 0.09);
+  stroke: var(--lime);
+}
+
+.graph-vertex.is-visited circle,
+.graph-vertex.is-selected circle,
+.graph-vertex.is-active circle {
+  fill: rgba(199, 243, 107, 0.18);
+  stroke: var(--lime-strong);
+}
+
+.graph-legend i {
+  border-color: rgba(199, 243, 107, 0.25);
+}
+
+.graph-legend .legend-discovered,
+.graph-legend .legend-visited,
+.graph-legend .legend-active {
+  background: rgba(199, 243, 107, 0.2);
+  border-color: var(--lime);
+}
+
+.graph-status,
+.graph-readout {
+  background: rgba(199, 243, 107, 0.04);
+  border-color: rgba(199, 243, 107, 0.12);
+}
+
+.graph-distance-readout b {
+  color: var(--lime-strong);
+}
+
+.graph-readout > strong {
+  color: var(--text);
 }

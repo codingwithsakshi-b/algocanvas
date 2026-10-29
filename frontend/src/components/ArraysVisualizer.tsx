@@ -27,6 +27,7 @@ function ArraysVisualizer() {
   const [searchTarget, setSearchTarget] = useState<number | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackDelay, setPlaybackDelay] = useState(700);
   const [status, setStatus] = useState(
     "Ready. Choose an operation to explore how array indexes work.",
   );
@@ -67,9 +68,34 @@ function ArraysVisualizer() {
   useEffect(() => {
     if (!isPlaying || !isSearching) return;
 
-    const timeout = window.setTimeout(advanceSearch, 700);
+    const timeout = window.setTimeout(advanceSearch, playbackDelay);
     return () => window.clearTimeout(timeout);
-  }, [advanceSearch, isPlaying, isSearching]);
+  }, [advanceSearch, isPlaying, isSearching, playbackDelay]);
+
+  function stepSearchForward() {
+    setIsPlaying(false);
+    advanceSearch();
+  }
+
+  function stepSearchBackward() {
+    if (checkedIndices.length === 0 || searchTarget === null) return;
+    setIsPlaying(false);
+    const rewindIndex = checkedIndices[checkedIndices.length - 1];
+    setCheckedIndices((indices) => indices.slice(0, -1));
+    setSearchCursor(rewindIndex);
+    setSelectedIndex(null);
+    setIsSearching(true);
+    setStatus(
+      `Back at index ${rewindIndex}. Compare ${values[rewindIndex]} with ${searchTarget}.`,
+    );
+  }
+
+  function resetSearch() {
+    stopSearch();
+    setSearchCursor(0);
+    setSelectedIndex(null);
+    setStatus("Search reset. Enter a target and start a new linear search.");
+  }
 
   function handleAccess(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -373,11 +399,42 @@ function ArraysVisualizer() {
               <button
                 className="array-step-button"
                 type="button"
-                onClick={advanceSearch}
-                disabled={!isSearching || isPlaying}
+                onClick={stepSearchBackward}
+                disabled={checkedIndices.length === 0}
+              >
+                Previous
+              </button>
+              <button
+                className="array-step-button"
+                type="button"
+                onClick={stepSearchForward}
+                disabled={!isSearching}
               >
                 Step forward
               </button>
+              <button
+                className="array-step-button"
+                type="button"
+                onClick={resetSearch}
+                disabled={searchTarget === null && checkedIndices.length === 0}
+              >
+                Reset
+              </button>
+              <span className="array-search-step-count" aria-live="polite">
+                Step {checkedIndices.length} of {values.length}
+              </span>
+              <label className="array-search-speed" htmlFor="array-search-speed">
+                Speed
+                <select
+                  id="array-search-speed"
+                  value={playbackDelay}
+                  onChange={(event) => setPlaybackDelay(Number(event.target.value))}
+                >
+                  <option value={1400}>0.5×</option>
+                  <option value={700}>1×</option>
+                  <option value={350}>2×</option>
+                </select>
+              </label>
             </div>
           </form>
         </div>

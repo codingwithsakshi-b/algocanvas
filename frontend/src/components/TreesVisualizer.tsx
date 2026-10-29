@@ -21,8 +21,6 @@ import {
 import "./TreesVisualizer.css";
 
 const sampleValues = [50, 30, 70, 20, 40, 60, 80];
-const traversalInterval = 650;
-
 type PositionedNode = {
   value: number;
   x: number;
@@ -75,6 +73,7 @@ function TreesVisualizer() {
   const [traversalValues, setTraversalValues] = useState<number[]>([]);
   const [traversalIndex, setTraversalIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackDelay, setPlaybackDelay] = useState(650);
 
   const { nodes, width, height } = useMemo(() => layoutTree(root), [root]);
   const nodesByValue = useMemo(
@@ -106,9 +105,9 @@ function TreesVisualizer() {
       setStatus(
         `${traversalLabel(traversal)}: visiting ${traversalValues[nextIndex]} (${nextIndex + 1} of ${traversalValues.length}).`,
       );
-    }, traversalInterval);
+    }, playbackDelay);
     return () => window.clearTimeout(timeout);
-  }, [isPlaying, traversal, traversalIndex, traversalValues]);
+  }, [isPlaying, playbackDelay, traversal, traversalIndex, traversalValues]);
 
   function resetTraversal() {
     setIsPlaying(false);
@@ -244,6 +243,16 @@ function TreesVisualizer() {
     setTraversalIndex(nextIndex);
     setStatus(
       `${traversalLabel(traversal)}: visiting ${traversalValues[nextIndex]} (${nextIndex + 1} of ${traversalValues.length}).`,
+    );
+  }
+
+  function stepBackward() {
+    setIsPlaying(false);
+    if (!isTraversalReady || traversalIndex <= 0) return;
+    const previousIndex = traversalIndex - 1;
+    setTraversalIndex(previousIndex);
+    setStatus(
+      `${traversalLabel(traversal)}: back to ${traversalValues[previousIndex]} (${previousIndex + 1} of ${traversalValues.length}).`,
     );
   }
 
@@ -448,6 +457,14 @@ function TreesVisualizer() {
             <button
               className="array-step-button"
               type="button"
+              onClick={stepBackward}
+              disabled={!isTraversalReady || traversalIndex <= 0}
+            >
+              Previous
+            </button>
+            <button
+              className="array-step-button"
+              type="button"
               onClick={stepTraversal}
               disabled={nodes.length === 0 || isTraversalComplete}
             >
@@ -463,6 +480,18 @@ function TreesVisualizer() {
             >
               Reset traversal
             </button>
+            <label className="tree-traversal-speed" htmlFor="tree-traversal-speed">
+              Speed
+              <select
+                id="tree-traversal-speed"
+                value={playbackDelay}
+                onChange={(event) => setPlaybackDelay(Number(event.target.value))}
+              >
+                <option value={1300}>0.5×</option>
+                <option value={650}>1×</option>
+                <option value={325}>2×</option>
+              </select>
+            </label>
           </div>
         </section>
       </section>

@@ -43,6 +43,7 @@ function LinkedListVisualizer() {
   const [isTraversing, setIsTraversing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [traversalFinished, setTraversalFinished] = useState(false);
+  const [playbackDelay, setPlaybackDelay] = useState(750);
   const [status, setStatus] = useState(
     "Ready. Start a traversal or choose an operation to explore the list.",
   );
@@ -200,9 +201,9 @@ function LinkedListVisualizer() {
   useEffect(() => {
     if (!isPlaying || !isTraversing) return;
 
-    const timeout = window.setTimeout(advanceTraversal, 750);
+    const timeout = window.setTimeout(advanceTraversal, playbackDelay);
     return () => window.clearTimeout(timeout);
-  }, [advanceTraversal, isPlaying, isTraversing]);
+  }, [advanceTraversal, isPlaying, isTraversing, playbackDelay]);
 
   function startTraversal() {
     if (head === null) {
@@ -219,12 +220,39 @@ function LinkedListVisualizer() {
   }
 
   function stepForward() {
+    setIsPlaying(false);
     if (!isTraversing) {
       if (traversalFinished) return;
       startTraversal();
       return;
     }
-    if (!isPlaying) advanceTraversal();
+    advanceTraversal();
+  }
+
+  function stepBackward() {
+    const endedAtNull = traversalFinished && traversalIndex === null;
+    if (traversalFinished && traversalIndex === 0) {
+      setIsPlaying(false);
+      setIsTraversing(false);
+      setTraversalIndex(null);
+      setTraversalFinished(false);
+      setStatus("Back before the first node. Start the traversal again from HEAD.");
+      return;
+    }
+    if (!endedAtNull && (traversalIndex === null || traversalIndex <= 0)) return;
+    setIsPlaying(false);
+    const previousIndex = endedAtNull
+      ? nodes.length - 1
+      : (traversalIndex ?? 0) - 1;
+    setTraversalIndex(previousIndex);
+    setIsTraversing(true);
+    setTraversalFinished(false);
+    const node = nodes[previousIndex];
+    setStatus(
+      traversalTarget === null
+        ? `Back at index ${previousIndex}, value ${node.value}. The next step follows its next pointer.`
+        : `Back at index ${previousIndex}, value ${node.value}. Continue searching for ${traversalTarget}.`,
+    );
   }
 
   function resetSample() {
@@ -348,6 +376,13 @@ function LinkedListVisualizer() {
                   : "Ready at HEAD"
                 : `Index ${traversalIndex} · Value ${currentNode.value}`}
             </strong>
+            <span className="linked-step-count">
+              {currentNode
+                ? `Step ${(traversalIndex ?? -1) + 1} of ${nodes.length}`
+                : traversalFinished
+                  ? `Traversal complete · ${nodes.length} node${nodes.length === 1 ? "" : "s"}`
+                  : `${nodes.length} node${nodes.length === 1 ? "" : "s"} ready`}
+            </span>
             <span>
               {currentNode === null
                 ? "Follow next pointers from the head node."
@@ -377,16 +412,39 @@ function LinkedListVisualizer() {
             <button
               className="array-step-button"
               type="button"
+              onClick={stepBackward}
+              disabled={
+                traversalIndex === null
+                  ? !traversalFinished || nodes.length === 0
+                  : traversalIndex === 0 && !traversalFinished
+              }
+            >
+              Previous
+            </button>
+            <button
+              className="array-step-button"
+              type="button"
               onClick={stepForward}
               disabled={
                 nodes.length === 0 ||
-                isPlaying ||
                 traversalFinished ||
                 (isTraversing && !currentNode)
               }
             >
               Step forward
             </button>
+            <label className="linked-traversal-speed" htmlFor="linked-traversal-speed">
+              Speed
+              <select
+                id="linked-traversal-speed"
+                value={playbackDelay}
+                onChange={(event) => setPlaybackDelay(Number(event.target.value))}
+              >
+                <option value={1500}>0.5×</option>
+                <option value={750}>1×</option>
+                <option value={375}>2×</option>
+              </select>
+            </label>
             <button
               className="array-step-button"
               type="button"

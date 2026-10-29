@@ -12,6 +12,14 @@ import {
   setGraphMode,
   updateEdgeWeight,
 } from "../src/algorithms/graph.ts";
+import { graphAlgorithmForTopic } from "../src/learning/topics.ts";
+
+test("Learn graph topics select their corresponding Graph Explorer algorithms", () => {
+  assert.equal(graphAlgorithmForTopic("graphs-bfs"), "bfs");
+  assert.equal(graphAlgorithmForTopic("graphs-dfs"), "dfs");
+  assert.equal(graphAlgorithmForTopic("graphs-dijkstra"), "dijkstra");
+  assert.equal(graphAlgorithmForTopic("graphs-unknown"), undefined);
+});
 
 test("graph editing validates names, endpoints, duplicates, loops, weights, and deletion", () => {
   let graph = createGraph(["A", "B", "C"], [], false, true);
@@ -84,6 +92,41 @@ test("DFS uses deterministic depth-first order and starts only from the selected
   assert.deepEqual(final.visitedOrder, ["A", "B", "D", "C", "E"]);
   assert.match(result.finalMessage, /disconnected vertices not visited: Z/);
   assert.ok(result.events.some((event) => event.frontier.length > 0));
+});
+
+test("graph playback snapshots restore the prior step and reset to the initial state", () => {
+  const weightedGraph = createGraph(
+    ["A", "B", "C"],
+    [
+      { from: "A", to: "B", weight: 2 },
+      { from: "B", to: "C", weight: 3 },
+      { from: "A", to: "C", weight: 8 },
+    ],
+    false,
+    true,
+  );
+  const results = [
+    breadthFirstSearch(sampleGraph, "A"),
+    depthFirstSearch(sampleGraph, "A"),
+    dijkstra(weightedGraph, "A", "C"),
+  ];
+
+  for (const result of results) {
+    for (let step = 0; step <= result.events.length; step += 1) {
+      const snapshot = replayGraphEvents(result.events, step);
+      assert.deepEqual(
+        snapshot,
+        step === 0 ? replayGraphEvents(result.events, 0) : result.events[step - 1],
+      );
+      if (step > 0) {
+        assert.deepEqual(
+          replayGraphEvents(result.events, step - 1),
+          step === 1 ? replayGraphEvents(result.events, 0) : result.events[step - 2],
+        );
+      }
+    }
+    assert.deepEqual(replayGraphEvents(result.events, 0).visitedOrder, []);
+  }
 });
 
 test("Dijkstra finds weighted shortest paths and reports unreachable destinations", () => {

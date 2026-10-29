@@ -23,6 +23,8 @@ export type GraphOperationResult<T> =
 
 export type GraphEdgeRef = Readonly<{ from: string; to: string }>;
 
+export type GraphAlgorithm = "bfs" | "dfs" | "dijkstra";
+
 export type GraphStep = Readonly<{
   operation: string;
   explanation: string;
@@ -36,7 +38,7 @@ export type GraphStep = Readonly<{
 }>;
 
 export type GraphAlgorithmResult = Readonly<{
-  algorithm: "bfs" | "dfs" | "dijkstra";
+  algorithm: GraphAlgorithm;
   events: readonly GraphStep[];
   finalMessage: string;
   destination: string | null;
