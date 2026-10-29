@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Router, type Request, type Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
@@ -41,6 +42,41 @@ function isDuplicateKeyError(error: unknown): boolean {
 }
 
 class GoogleAccountConflictError extends Error {}
+
+function fingerprintAudience(value: string): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 12);
+}
+
+function logGoogleAudienceDiagnostic(
+  tokenAudience: unknown,
+  configuredAudience: string | undefined,
+): void {
+  const configuredAudienceNonEmpty =
+    configuredAudience !== undefined && configuredAudience.length > 0;
+  const configuredAudienceFingerprint = configuredAudienceNonEmpty
+    ? fingerprintAudience(configuredAudience)
+    : null;
+  const tokenAudienceFingerprints =
+    typeof tokenAudience === "string"
+      ? [fingerprintAudience(tokenAudience)]
+      : Array.isArray(tokenAudience)
+        ? tokenAudience
+            .filter((claim): claim is string => typeof claim === "string")
+            .map(fingerprintAudience)
+        : [];
+
+  console.error("Google token audience diagnostic.", {
+    renderServiceIdPresent: Boolean(process.env.RENDER_SERVICE_ID),
+    renderGitCommitPresent: Boolean(process.env.RENDER_GIT_COMMIT),
+    renderInstanceIdPresent: Boolean(process.env.RENDER_INSTANCE_ID),
+    configuredAudienceNonEmpty,
+    configuredAudienceFingerprint,
+    tokenAudienceFingerprints,
+    audienceFingerprintsMatch:
+      configuredAudienceFingerprint !== null &&
+      tokenAudienceFingerprints.includes(configuredAudienceFingerprint),
+  });
+}
 
 async function findMatchingUser(profile: {
   googleId: string;
@@ -164,28 +200,13 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
     } catch {
       try {
         const decoded = jwt.decode(tokenCandidate);
-        if (typeof decoded === "object" && decoded !== null) {
-          const tokenAudience = decoded.aud;
-          const tokenAudienceClaimType =
-            typeof tokenAudience === "string"
-              ? "string"
-              : Array.isArray(tokenAudience)
-                ? "array"
-                : "unavailable";
-          const tokenAudienceMatchesConfiguredClientId =
-            typeof tokenAudience === "string"
-              ? tokenAudience === options.googleClientId
-              : Array.isArray(tokenAudience) &&
-                tokenAudience.includes(options.googleClientId ?? "");
-          console.error("Google token audience diagnostic.", {
-            tokenAudienceMatchesConfiguredClientId,
-            tokenAudienceClaimType,
-          });
-        } else {
-          console.error("Google token audience diagnostic unavailable.");
-        }
+        const tokenAudience =
+          typeof decoded === "object" && decoded !== null
+            ? decoded.aud
+            : undefined;
+        logGoogleAudienceDiagnostic(tokenAudience, options.googleClientId);
       } catch {
-        console.error("Google token audience diagnostic unavailable.");
+        logGoogleAudienceDiagnostic(undefined, options.googleClientId);
       }
       res.status(401).json({ message: "Google ID token is invalid or expired." });
       return;
