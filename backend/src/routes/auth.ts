@@ -161,7 +161,14 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
         audience: options.googleClientId,
       });
       payload = ticket.getPayload();
-    } catch {
+    } catch (error) {
+      console.error("Google ID token verification failed.", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Non-Error value thrown during token verification.",
+      });
       res.status(401).json({ message: "Google ID token is invalid or expired." });
       return;
     }
