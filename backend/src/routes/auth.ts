@@ -161,14 +161,32 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
         audience: options.googleClientId,
       });
       payload = ticket.getPayload();
-    } catch (error) {
-      console.error("Google ID token verification failed.", {
-        name: error instanceof Error ? error.name : "UnknownError",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Non-Error value thrown during token verification.",
-      });
+    } catch {
+      try {
+        const decoded = jwt.decode(tokenCandidate);
+        if (typeof decoded === "object" && decoded !== null) {
+          const tokenAudience = decoded.aud;
+          const tokenAudienceClaimType =
+            typeof tokenAudience === "string"
+              ? "string"
+              : Array.isArray(tokenAudience)
+                ? "array"
+                : "unavailable";
+          const tokenAudienceMatchesConfiguredClientId =
+            typeof tokenAudience === "string"
+              ? tokenAudience === options.googleClientId
+              : Array.isArray(tokenAudience) &&
+                tokenAudience.includes(options.googleClientId ?? "");
+          console.error("Google token audience diagnostic.", {
+            tokenAudienceMatchesConfiguredClientId,
+            tokenAudienceClaimType,
+          });
+        } else {
+          console.error("Google token audience diagnostic unavailable.");
+        }
+      } catch {
+        console.error("Google token audience diagnostic unavailable.");
+      }
       res.status(401).json({ message: "Google ID token is invalid or expired." });
       return;
     }
